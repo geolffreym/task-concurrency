@@ -1,9 +1,8 @@
 package task
 
 type Result struct {
-	Thread   int
-	Channels int
-	Payload  any
+	Thread  int
+	Payload any
 }
 
 type Task[T any] struct {
