@@ -9,6 +9,8 @@ import (
 //
 func main() {
 	// Create a task to processing
+	// TODO run as microservices?
+	// Add queue features
 	sum := &task.Task[int]{
 		Input: []int{1, 2, 3},
 		Implementation: func(num ...int) int {
@@ -37,7 +39,9 @@ func main() {
 
 	// Run concurrent tasks using channels and routines
 	tasks := []*task.Task[int]{sum, minus}
-	worker := worker.Worker[int]{Tasks: tasks}
-	workerChannels := worker.Run() // Run worker
-	worker.Process(workerChannels) // Process channel response
+	channels := make(chan *task.Result, len(tasks))
+
+	worker := worker.Worker[int]{Tasks: tasks, Channels: channels}
+	worker.Run()     // Run worker
+	worker.Process() // Process channel response
 }
