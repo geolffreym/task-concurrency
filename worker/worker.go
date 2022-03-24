@@ -3,47 +3,55 @@ package worker
 import (
 	"concurrent/task"
 	"fmt"
+	"sync/atomic"
+	"time"
 )
 
 type Worker[T any] struct {
-	Tasks []*task.Task[T]
+	Tasks    []*task.Task[T]
+	Channels chan *task.Result
+	Rate     int
+	pool     int32
 }
 
 // Run go routines and populate channels based on defined tasks
-func (w Worker[T]) Run() chan *task.Result {
+func (w *Worker[T]) Run() {
 	// Buffered channels
 	var tasks []*task.Task[T] = w.Tasks
-	var channels chan *task.Result = make(chan *task.Result, len(w.Tasks))
+	// defer close(channels)
 
-	//Make thread call
+	//Make thread callk
 	for i, currentTask := range tasks {
 		fmt.Printf("\nRunning task %d from %d", i+1, len(tasks))
-		go func(index int, task_ *task.Task[T], ch chan *task.Result) {
-			ch <- &task.Result{
-				Thread:   index + 1,
-				Channels: len(tasks),
-				Payload:  task_.Call(),
-			}
-		}(i, currentTask, channels)
-	}
+		// Sync channels
+		atomic.AddInt32(&w.pool, 1)
+		// How long to wait?
+		time.Sleep(time.Duration(w.Rate))
 
-	return channels
+		go func(index int, task_ *task.Task[T]) {
+			w.Channels <- &task.Result{
+				Thread:  index + 1,
+				Payload: task_.Call(),
+			}
+		}(i, currentTask)
+	}
 }
 
 // Consume channels from Worker and return results
-func (w Worker[T]) Process(ch chan *task.Result) []*task.Result {
-	//Array of responses coming from channel
-	responses := make([]*task.Result, 0)
-
+func (w *Worker[T]) Process() {
 	//For each channel response
-	for response := range ch {
-		fmt.Printf("\nTasks #%d with payload %d", response.Thread, response.Payload)
-		responses = append(responses, response)
-		if len(responses) == response.Channels {
-			close(ch)
+	for {
+		select {
+		case response := <-w.Channels:
+			fmt.Printf("\nTasks #%d with payload %d", response.Thread, response.Payload)
+			atomic.AddInt32(&w.pool, -1)
+
+		default:
+			// Stop when decreasing threads == 0
+			if atomic.LoadInt32(&w.pool) == 0 {
+				return
+			}
+
 		}
 	}
-
-	return responses
-
 }
