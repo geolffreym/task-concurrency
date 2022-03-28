@@ -23,7 +23,7 @@ func main() {
 		},
 	}
 
-	minus := &task.Task[int]{
+	sub := &task.Task[int]{
 		Input: []int{10, 9, 8, 8},
 		Implementation: func(num ...int) int {
 			sort.Ints(num)                  // Sort Input then get bigger number
@@ -38,7 +38,7 @@ func main() {
 	}
 
 	// Run concurrent tasks using channels and routines
-	tasks := []*task.Task[int]{sum, minus}
+	tasks := []*task.Task[int]{sum, sub}
 	channels := make(chan *task.Result, len(tasks))
 
 	worker := worker.Worker[int]{Tasks: tasks, Channels: channels}
