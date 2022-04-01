@@ -37,7 +37,7 @@ func (w *Worker[T]) Run() {
 	}
 }
 
-// Consume channels from Worker and return results
+// Consume channels from Worker 
 func (w *Worker[T]) Process() {
 	//For each channel response
 	for {
